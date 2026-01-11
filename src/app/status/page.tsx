@@ -29,7 +29,6 @@ export default function StatusPage() {
       .catch((err) => {
         setError("Failed to load leaderboard");
         setLoading(false);
-        
       });
   }, []);
 
@@ -126,15 +125,21 @@ export default function StatusPage() {
                         {entry.name}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        Level {entry.level}
+                        {entry.level > 10
+                          ? "Completed"
+                          : `Level ${entry.level}`}
                       </p>
                     </div>
 
                     <div className="text-right">
                       <div className="text-2xl font-bold text-christmas-accent">
-                        {entry.level}
+                        {entry.level > 10 ? "🎉" : entry.level}
                       </div>
-                      <div className="text-xs text-muted-foreground">Level</div>
+                      {entry.level <= 10 && (
+                        <div className="text-xs text-muted-foreground">
+                          Level
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

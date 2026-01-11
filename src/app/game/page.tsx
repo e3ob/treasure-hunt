@@ -27,6 +27,7 @@ export default function GamePage() {
   const [submitting, setSubmitting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [error, setError] = useState("");
+  const [isInitial, setIsInitial] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -45,7 +46,14 @@ export default function GamePage() {
     setLoading(true);
     try {
       const { data } = await ApiHandler.post("/question", { key, email });
-
+      if (data.message !== "Invalid credentials" && isInitial) {
+        localStorage.setItem("userKey", userKey);
+        localStorage.setItem("userEmail", userEmail);
+        setIsInitial(false);
+      }
+      if (data.message === "Invalid credentials") {
+        setIsRegistered(false);
+      }
       if (data.status === "error") {
         toast({
           title: "Error",
@@ -83,8 +91,6 @@ export default function GamePage() {
       return;
     }
 
-    localStorage.setItem("userKey", userKey);
-    localStorage.setItem("userEmail", userEmail);
     setIsRegistered(true);
     fetchQuestion(userKey, userEmail);
 
