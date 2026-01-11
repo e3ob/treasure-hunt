@@ -10,12 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Send, PartyPopper } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ApiHandler from "@/api";
 
 interface Question {
-  heading: string;
-  question: string;
-  image?: string;
-  answer?: string;
+  question1: string;
+  question2: string;
 }
 
 export default function GamePage() {
@@ -27,6 +26,7 @@ export default function GamePage() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [error, setError] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -44,22 +44,29 @@ export default function GamePage() {
   const fetchQuestion = async (key: string, email: string) => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/question?key=${key}&email=${email}`);
-      const data = await response.json();
+      const { data } = await ApiHandler.post("/question", { key, email });
 
-      if (!data || data.question === null || data.question === undefined) {
+      if (data.status === "error") {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to fetch question",
+          variant: "destructive",
+        });
+        setError(data.message || "Failed to fetch question");
+        setIsCompleted(false);
+        setQuestion(null);
+        return;
+      }
+      if (data.completed === "yes") {
         setIsCompleted(true);
         setQuestion(null);
       } else {
-        setQuestion(data);
+        console.log(data);
+        setQuestion(data.question);
         setIsCompleted(false);
       }
     } catch (err) {
-      setQuestion({
-        heading: "Level 1: Christmas Tree",
-        question: "What goes on top of a Christmas tree?",
-        image: "/christmas-tree-with-star.jpg",
-      });
+      setError("An error occurred while fetching the question.");
     } finally {
       setLoading(false);
     }
@@ -100,19 +107,13 @@ export default function GamePage() {
 
     setSubmitting(true);
     try {
-      const response = await fetch("/api/check-answer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          key: userKey,
-          email: userEmail,
-          answer: answer,
-        }),
+      const { data } = await ApiHandler.post("/answer", {
+        key: userKey,
+        email: userEmail,
+        answer: answer.trim().toLowerCase(),
       });
 
-      const data = await response.json();
-
-      if (data.correct) {
+      if (data.status === "success") {
         toast({
           title: "Correct! 🎉",
           description: "Moving to the next level!",
@@ -290,23 +291,16 @@ export default function GamePage() {
               ) : question ? (
                 <>
                   <div className="mb-6">
-                    <h2 className="text-2xl md:text-3xl font-bold text-christmas-primary mb-3 text-balance">
-                      {question.heading}
-                    </h2>
-                    <p className="text-lg text-foreground text-pretty leading-relaxed">
-                      {question.question}
-                    </p>
-                  </div>
+                    <h2
+                      className="text-2xl md:text-3xl font-bold text-christmas-primary mb-3 text-balance"
+                      dangerouslySetInnerHTML={{ __html: question.question1 }}
+                    />
 
-                  {question.image && (
-                    <div className="mb-6 rounded-lg overflow-hidden border-2 border-christmas-gold">
-                      <img
-                        src={question.image}
-                        alt="Question illustration"
-                        className="w-full h-auto"
-                      />
-                    </div>
-                  )}
+                    <p
+                      className="text-lg text-foreground text-pretty leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: question.question2 }}
+                    />
+                  </div>
 
                   <form onSubmit={handleSubmitAnswer} className="space-y-4">
                     <div>
@@ -355,7 +349,7 @@ export default function GamePage() {
               ) : (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground">
-                    No questions available
+                    {error || "No questions available"}
                   </p>
                 </div>
               )}
